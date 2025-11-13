@@ -8,28 +8,36 @@ import { PlusIcon } from './icons/PlusIcon';
 interface ColumnProps {
   column: ColumnType;
   tasks: Task[];
-  onDragStart: (e: React.DragEvent<HTMLDivElement>, taskId: string) => void;
-  onDragEnd: () => void;
-  onDrop: (e: React.DragEvent<HTMLDivElement>, destColumnId: ColumnId, destIndex: number) => void;
+  isDragging: boolean;
+  onTaskDragStart: (e: React.DragEvent<HTMLDivElement>, taskId: string) => void;
+  onTaskDragEnd: () => void;
+  onTaskDrop: (e: React.DragEvent<HTMLDivElement>, destColumnId: ColumnId, destIndex: number) => void;
+  onColumnDragStart: (e: React.DragEvent<HTMLDivElement>, columnId: ColumnId) => void;
+  onColumnDragEnd: (e: React.DragEvent<HTMLDivElement>) => void;
+  onColumnDrop: (e: React.DragEvent<HTMLDivElement>, targetColumnId: ColumnId) => void;
 }
 
-const Column: React.FC<ColumnProps> = ({ column, tasks, onDragStart, onDragEnd, onDrop }) => {
+const Column: React.FC<ColumnProps> = ({ column, tasks, isDragging, onTaskDragStart, onTaskDragEnd, onTaskDrop, onColumnDragStart, onColumnDragEnd, onColumnDrop }) => {
   const [isAddingTask, setIsAddingTask] = useState(false);
-  const [isDragOver, setIsDragOver] = useState(false);
+  const [isTaskDragOver, setIsTaskDragOver] = useState(false);
+  const [isColumnDragOver, setIsColumnDragOver] = useState(false);
 
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    setIsDragOver(true);
+  const handleTaskDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    if (e.dataTransfer.types.includes('application/kanban.task.id')) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      setIsTaskDragOver(true);
+    }
   };
   
-  const handleDragLeave = () => {
-    setIsDragOver(false);
+  const handleTaskDragLeave = () => {
+    setIsTaskDragOver(false);
   };
 
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleTaskDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    setIsDragOver(false);
+    e.stopPropagation();
+    setIsTaskDragOver(false);
     
     const cardElements = Array.from(e.currentTarget.querySelectorAll('[data-task-id]'));
     const mouseY = e.clientY;
@@ -37,7 +45,6 @@ const Column: React.FC<ColumnProps> = ({ column, tasks, onDragStart, onDragEnd, 
     let closestCard: Element | null = null;
     let closestOffset = Number.NEGATIVE_INFINITY;
     
-    // FIX: Add an explicit type to the 'card' parameter to resolve errors when accessing its properties.
     cardElements.forEach((card: Element) => {
         const box = card.getBoundingClientRect();
         const offset = mouseY - box.top - box.height / 2;
@@ -48,34 +55,51 @@ const Column: React.FC<ColumnProps> = ({ column, tasks, onDragStart, onDragEnd, 
     });
 
     const dropIndex = closestCard ? cardElements.indexOf(closestCard) : tasks.length;
-    onDrop(e, column.id, dropIndex);
+    onTaskDrop(e, column.id, dropIndex);
   }
+
+  const handleColumnDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    if (e.dataTransfer.types.includes('application/kanban.column.id')) {
+      e.preventDefault();
+      setIsColumnDragOver(true);
+    }
+  };
 
   return (
     <div
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
-      className={`flex flex-col bg-slate-100 rounded-xl shadow-sm h-full transition-colors ${isDragOver ? 'bg-indigo-50' : ''}`}
+      onDrop={(e) => { onColumnDrop(e, column.id); setIsColumnDragOver(false); }}
+      onDragOver={handleColumnDragOver}
+      onDragLeave={() => setIsColumnDragOver(false)}
+      className={`flex flex-col bg-slate-100 rounded-xl shadow-sm h-full transition-all ${isDragging ? 'opacity-50' : ''} ${isColumnDragOver ? 'ring-2 ring-indigo-400' : ''}`}
     >
       <div className="p-4 border-b border-slate-200">
-        <h2 className="flex items-center justify-between text-lg font-semibold">
+        <h2 
+          draggable
+          onDragStart={(e) => onColumnDragStart(e, column.id)}
+          onDragEnd={onColumnDragEnd}
+          className="flex items-center justify-between text-lg font-semibold cursor-grab"
+        >
           {column.title}
           <span className="px-2 py-1 text-sm font-medium text-slate-500 bg-slate-200 rounded-full">
             {tasks.length}
           </span>
         </h2>
       </div>
-      <div className="flex-grow p-2 overflow-y-auto space-y-3">
+      <div 
+        onDragOver={handleTaskDragOver}
+        onDragLeave={handleTaskDragLeave}
+        onDrop={handleTaskDrop}
+        className={`flex-grow p-2 overflow-y-auto space-y-3 transition-colors ${isTaskDragOver ? 'bg-indigo-50' : ''}`}
+      >
         {tasks.map((task) => (
           <TaskCard 
             key={task.id} 
             task={task} 
-            onDragStart={onDragStart}
-            onDragEnd={onDragEnd}
+            onDragStart={onTaskDragStart}
+            onDragEnd={onTaskDragEnd}
           />
         ))}
-         {isDragOver && <div className="h-24 bg-indigo-100 rounded-lg border-2 border-dashed border-indigo-300"></div>}
+         {isTaskDragOver && <div className="h-24 bg-indigo-100 rounded-lg border-2 border-dashed border-indigo-300"></div>}
       </div>
       <div className="p-4 mt-auto">
         <button

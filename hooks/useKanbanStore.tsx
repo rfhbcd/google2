@@ -18,9 +18,13 @@ type Action =
   | { type: 'ADD_USER'; payload: { name: string; password: string; isAdmin?: boolean } }
   | { type: 'DELETE_USER'; payload: { userId: string } }
   | { type: 'MOVE_TASK'; payload: { taskId: string; sourceColumnId: ColumnId; destColumnId: ColumnId; destIndex: number } }
+  | { type: 'REORDER_COLUMN'; payload: { sourceIndex: number; destinationIndex: number } }
   | { type: 'ADD_TASK'; payload: Omit<Task, 'id'> }
   | { type: 'UPDATE_TASK'; payload: Task }
   | { type: 'DELETE_TASK'; payload: { taskId: string } }
+  | { type: 'ADD_COLUMN'; payload: { title: string } }
+  | { type: 'UPDATE_COLUMN_TITLE'; payload: { columnId: ColumnId; newTitle: string } }
+  | { type: 'DELETE_COLUMN'; payload: { columnId: ColumnId } }
   | { type: 'SET_FILTER'; payload: { filterType: 'assigneeId' | 'priority'; value: string | null } }
   | { type: 'CLEAR_FILTERS' }
   | { type: 'CHECK_DUE_DATES' }; // Not really an action, just a trigger
@@ -90,6 +94,19 @@ const kanbanReducer = (state: AppState, action: Action): AppState => {
       const newDestTaskIds = Array.from(destColumn.taskIds);
       newDestTaskIds.splice(destIndex, 0, taskId);
 
+      const task = state.data.tasks[taskId];
+      const { columnOrder } = state.data;
+      const doneColumnId = columnOrder[columnOrder.length - 1];
+      const updatedTask = { ...task, status: destColumnId };
+      const wasInDone = sourceColumnId === doneColumnId;
+      const isNowInDone = destColumnId === doneColumnId;
+      
+      if (isNowInDone && !wasInDone) {
+        updatedTask.completionDate = new Date().toISOString();
+      } else if (!isNowInDone && wasInDone) {
+        delete updatedTask.completionDate;
+      }
+
       const newData: KanbanData = {
         ...state.data,
         columns: {
@@ -99,10 +116,17 @@ const kanbanReducer = (state: AppState, action: Action): AppState => {
         },
         tasks: {
             ...state.data.tasks,
-            [taskId]: { ...state.data.tasks[taskId], status: destColumnId }
+            [taskId]: updatedTask
         }
       };
       return { ...state, data: newData };
+    }
+    case 'REORDER_COLUMN': {
+      const { sourceIndex, destinationIndex } = action.payload;
+      const newColumnOrder = Array.from(state.data.columnOrder);
+      const [removed] = newColumnOrder.splice(sourceIndex, 1);
+      newColumnOrder.splice(destinationIndex, 0, removed);
+      return { ...state, data: { ...state.data, columnOrder: newColumnOrder } };
     }
     case 'ADD_TASK': {
         const newTaskId = `task-${Date.now()}`;
@@ -121,8 +145,20 @@ const kanbanReducer = (state: AppState, action: Action): AppState => {
         return { ...state, data: newData };
     }
     case 'UPDATE_TASK': {
-        const updatedTask = action.payload;
-        const oldTask = state.data.tasks[updatedTask.id];
+        const updatedTaskPayload = action.payload;
+        const oldTask = state.data.tasks[updatedTaskPayload.id];
+        
+        const { columnOrder } = state.data;
+        const doneColumnId = columnOrder[columnOrder.length - 1];
+        const wasInDone = oldTask.status === doneColumnId;
+        const isNowInDone = updatedTaskPayload.status === doneColumnId;
+
+        const updatedTask = { ...updatedTaskPayload };
+        if (isNowInDone && !wasInDone) {
+          updatedTask.completionDate = new Date().toISOString();
+        } else if (!isNowInDone && wasInDone) {
+          delete updatedTask.completionDate;
+        }
 
         // if status changed, move task between columns
         if(oldTask.status !== updatedTask.status) {
@@ -169,6 +205,66 @@ const kanbanReducer = (state: AppState, action: Action): AppState => {
             }
         };
         return { ...state, data: newData };
+    }
+    case 'ADD_COLUMN': {
+      const { title } = action.payload;
+      const newColumnId = `column-${Date.now()}`;
+      const newColumn = {
+        id: newColumnId,
+        title,
+        taskIds: [],
+      };
+      return {
+        ...state,
+        data: {
+          ...state.data,
+          columns: {
+            ...state.data.columns,
+            [newColumnId]: newColumn,
+          },
+          columnOrder: [...state.data.columnOrder, newColumnId],
+        },
+      };
+    }
+    case 'UPDATE_COLUMN_TITLE': {
+      const { columnId, newTitle } = action.payload;
+      const columnToUpdate = state.data.columns[columnId];
+      if (!columnToUpdate) return state;
+
+      const updatedColumn = { ...columnToUpdate, title: newTitle };
+      return {
+        ...state,
+        data: {
+          ...state.data,
+          columns: {
+            ...state.data.columns,
+            [columnId]: updatedColumn,
+          },
+        },
+      };
+    }
+    case 'DELETE_COLUMN': {
+      const { columnId } = action.payload;
+      const columnToDelete = state.data.columns[columnId];
+
+      // Prevent deletion of non-empty columns
+      if (!columnToDelete || columnToDelete.taskIds.length > 0) {
+        return state;
+      }
+
+      const newColumns = { ...state.data.columns };
+      delete newColumns[columnId];
+
+      const newColumnOrder = state.data.columnOrder.filter(id => id !== columnId);
+
+      return {
+        ...state,
+        data: {
+          ...state.data,
+          columns: newColumns,
+          columnOrder: newColumnOrder,
+        },
+      };
     }
     case 'SET_FILTER':
       return {

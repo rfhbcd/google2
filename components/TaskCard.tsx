@@ -54,6 +54,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onDragStart, onDragEnd }) => 
 
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
     setIsDragging(true);
+    e.dataTransfer.setData('application/kanban.task.id', task.id);
     onDragStart(e, task.id);
   }
 

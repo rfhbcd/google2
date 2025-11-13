@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useKanbanStore } from '../hooks/useKanbanStore';
 import { Task, Priority, ColumnId } from '../types';
@@ -11,12 +10,14 @@ interface TaskFormProps {
 
 const TaskForm: React.FC<TaskFormProps> = ({ onClose, taskToEdit, columnId }) => {
   const { state, dispatch } = useKanbanStore();
+  const defaultStatus = columnId || state.data.columnOrder[0];
+  
   const [title, setTitle] = useState(taskToEdit?.title || '');
   const [description, setDescription] = useState(taskToEdit?.description || '');
   const [assigneeIds, setAssigneeIds] = useState<string[]>(taskToEdit?.assigneeIds || []);
   const [dueDate, setDueDate] = useState(taskToEdit?.dueDate ? taskToEdit.dueDate.split('T')[0] : '');
   const [priority, setPriority] = useState<Priority>(taskToEdit?.priority || Priority.Media);
-  const [status, setStatus] = useState<ColumnId>(taskToEdit?.status || columnId || ColumnId.ToDo);
+  const [status, setStatus] = useState<ColumnId>(taskToEdit?.status || defaultStatus);
 
 
   const handleSubmit = (e: React.FormEvent) => {

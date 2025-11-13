@@ -1,15 +1,10 @@
-
 export enum Priority {
   Baixa = 'Baixa',
   Media = 'Média',
   Alta = 'Alta',
 }
 
-export enum ColumnId {
-  ToDo = 'ToDo',
-  InProgress = 'InProgress',
-  Done = 'Done',
-}
+export type ColumnId = string;
 
 export interface User {
   id: string;
@@ -27,6 +22,7 @@ export interface Task {
   dueDate: string; // ISO string format
   priority: Priority;
   status: ColumnId;
+  completionDate?: string; // ISO string format
 }
 
 export interface Column {

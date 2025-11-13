@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { useKanbanStore } from '../hooks/useKanbanStore';
-import { Task, User, ColumnId } from '../types';
+import { Task, User } from '../types';
 
 interface UserTaskSummary {
   user: User;
@@ -14,7 +14,80 @@ interface UserTaskSummary {
   };
 }
 
-const isOverdue = (task: Task) => new Date(task.dueDate) < new Date() && task.status !== ColumnId.Done;
+const isOverdue = (task: Task) => new Date(task.dueDate) < new Date() && task.status !== 'done';
+
+const OverdueReport: React.FC = () => {
+    const { state } = useKanbanStore();
+    const { users, tasks } = state.data;
+
+    const reportData = useMemo(() => {
+        // Fix: Explicitly type the 'task' parameter to resolve TypeScript error.
+        const completedTasks = Object.values(tasks).filter(
+            (task: Task) => task.completionDate
+        );
+
+        const overdueTasks = completedTasks.filter(
+            task => new Date(task.completionDate!) > new Date(task.dueDate)
+        );
+
+        const now = new Date();
+        const daysBetween = (date1: Date, date2: Date) => {
+            return Math.ceil(Math.abs(date1.getTime() - date2.getTime()) / (1000 * 60 * 60 * 24));
+        }
+
+        return users.map(user => {
+            const userOverdueTasks = overdueTasks.filter(task => task.assigneeIds.includes(user.id));
+            const periods = {
+                '7': 0, '15': 0, '30': 0, '90': 0
+            };
+
+            userOverdueTasks.forEach(task => {
+                const daysAgo = daysBetween(now, new Date(task.completionDate!));
+                if (daysAgo <= 7) periods['7']++;
+                if (daysAgo <= 15) periods['15']++;
+                if (daysAgo <= 30) periods['30']++;
+                if (daysAgo <= 90) periods['90']++;
+            });
+            return { user, periods, totalOverdue: userOverdueTasks.length };
+        }).sort((a, b) => b.totalOverdue - a.totalOverdue);
+
+    }, [users, tasks]);
+
+    return (
+        <div className="p-6 mt-8 bg-white border border-slate-200 rounded-xl shadow-sm">
+            <h2 className="mb-4 text-xl font-semibold">Relatório de Entregas Atrasadas</h2>
+            <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left text-slate-500">
+                    <thead className="text-xs text-slate-700 uppercase bg-slate-50">
+                        <tr>
+                            <th scope="col" className="px-6 py-3">Membro da Equipe</th>
+                            <th scope="col" className="px-6 py-3 text-center">Últimos 7 dias</th>
+                            <th scope="col" className="px-6 py-3 text-center">Últimos 15 dias</th>
+                            <th scope="col" className="px-6 py-3 text-center">Últimos 30 dias</th>
+                            <th scope="col" className="px-6 py-3 text-center">Últimos 90 dias</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {reportData.map(({ user, periods }) => (
+                            <tr key={user.id} className="bg-white border-b hover:bg-slate-50">
+                                <th scope="row" className="flex items-center gap-3 px-6 py-4 font-medium text-slate-900 whitespace-nowrap">
+                                    <div className="flex items-center justify-center w-8 h-8 text-sm font-bold text-indigo-800 bg-indigo-100 rounded-full">
+                                      {user.avatar}
+                                    </div>
+                                    {user.name}
+                                </th>
+                                <td className="px-6 py-4 text-center">{periods['7']}</td>
+                                <td className="px-6 py-4 text-center">{periods['15']}</td>
+                                <td className="px-6 py-4 text-center">{periods['30']}</td>
+                                <td className="px-6 py-4 text-center">{periods['90']}</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
+};
 
 const Dashboard: React.FC = () => {
   const { state } = useKanbanStore();
@@ -22,9 +95,6 @@ const Dashboard: React.FC = () => {
 
   const userSummaries = useMemo<UserTaskSummary[]>(() => {
     return users.map(user => {
-      // FIX: Add explicit type 'Task' to the `task` parameter in the filter function.
-      // This ensures `userTasks` is an array of `Task`s, preventing downstream
-      // errors when accessing task properties.
       const userTasks = Object.values(tasks).filter((task: Task) => task.assigneeIds.includes(user.id));
       
       return {
@@ -32,9 +102,12 @@ const Dashboard: React.FC = () => {
         tasks: userTasks,
         counts: {
           total: userTasks.length,
-          todo: userTasks.filter(t => t.status === ColumnId.ToDo).length,
-          inProgress: userTasks.filter(t => t.status === ColumnId.InProgress).length,
-          done: userTasks.filter(t => t.status === ColumnId.Done).length,
+          // Fix: Explicitly type the 't' parameter to resolve TypeScript error.
+          todo: userTasks.filter((t: Task) => t.status === 'todo').length,
+          // Fix: Explicitly type the 't' parameter to resolve TypeScript error.
+          inProgress: userTasks.filter((t: Task) => t.status === 'inprogress').length,
+          // Fix: Explicitly type the 't' parameter to resolve TypeScript error.
+          done: userTasks.filter((t: Task) => t.status === 'done').length,
           overdue: userTasks.filter(isOverdue).length,
         },
       };
@@ -77,6 +150,7 @@ const Dashboard: React.FC = () => {
           </div>
         ))}
       </div>
+      <OverdueReport />
     </div>
   );
 };

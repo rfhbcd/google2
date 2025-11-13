@@ -1,5 +1,4 @@
-
-import { KanbanData, ColumnId, Priority, User } from './types';
+import { KanbanData, Priority, User } from './types';
 
 export const USERS: User[] = [
   { id: 'user-1', name: 'Ana Silva', password: 'ana', avatar: 'AS', isAdmin: true },
@@ -17,7 +16,7 @@ export const INITIAL_DATA: KanbanData = {
       assigneeIds: ['user-1'],
       dueDate: new Date(new Date().setDate(new Date().getDate() + 2)).toISOString(),
       priority: Priority.Alta,
-      status: ColumnId.ToDo,
+      status: 'todo',
     },
     'task-2': {
       id: 'task-2',
@@ -26,7 +25,7 @@ export const INITIAL_DATA: KanbanData = {
       assigneeIds: ['user-2'],
       dueDate: new Date(new Date().setDate(new Date().getDate() - 1)).toISOString(),
       priority: Priority.Alta,
-      status: ColumnId.InProgress,
+      status: 'inprogress',
     },
     'task-3': {
       id: 'task-3',
@@ -35,7 +34,7 @@ export const INITIAL_DATA: KanbanData = {
       assigneeIds: ['user-3', 'user-4'],
       dueDate: new Date(new Date().setDate(new Date().getDate() + 5)).toISOString(),
       priority: Priority.Media,
-      status: ColumnId.InProgress,
+      status: 'inprogress',
     },
     'task-4': {
       id: 'task-4',
@@ -44,7 +43,7 @@ export const INITIAL_DATA: KanbanData = {
       assigneeIds: [],
       dueDate: new Date(new Date().setDate(new Date().getDate() + 10)).toISOString(),
       priority: Priority.Baixa,
-      status: ColumnId.ToDo,
+      status: 'todo',
     },
     'task-5': {
       id: 'task-5',
@@ -53,7 +52,7 @@ export const INITIAL_DATA: KanbanData = {
       assigneeIds: ['user-1'],
       dueDate: new Date(new Date().setDate(new Date().getDate() - 5)).toISOString(),
       priority: Priority.Alta,
-      status: ColumnId.Done,
+      status: 'done',
     },
     'task-6': {
       id: 'task-6',
@@ -62,26 +61,26 @@ export const INITIAL_DATA: KanbanData = {
       assigneeIds: ['user-4'],
       dueDate: new Date(new Date().setDate(new Date().getDate() + 1)).toISOString(),
       priority: Priority.Media,
-      status: ColumnId.ToDo,
+      status: 'todo',
     }
   },
   columns: {
-    [ColumnId.ToDo]: {
-      id: ColumnId.ToDo,
+    'todo': {
+      id: 'todo',
       title: 'A Fazer',
       taskIds: ['task-1', 'task-4', 'task-6'],
     },
-    [ColumnId.InProgress]: {
-      id: ColumnId.InProgress,
+    'inprogress': {
+      id: 'inprogress',
       title: 'Em Progresso',
       taskIds: ['task-2', 'task-3'],
     },
-    [ColumnId.Done]: {
-      id: ColumnId.Done,
+    'done': {
+      id: 'done',
       title: 'Concluído',
       taskIds: ['task-5'],
     },
   },
-  columnOrder: [ColumnId.ToDo, ColumnId.InProgress, ColumnId.Done],
+  columnOrder: ['todo', 'inprogress', 'done'],
   users: USERS,
 };
