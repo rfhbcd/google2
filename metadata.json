@@ -1,0 +1,5 @@
+{
+  "name": "Kanban Task Management System",
+  "description": "A complete Kanban-style task management system similar to Trello, featuring a minimalist design, clean interface, drag-and-drop functionality, team member management, and deadline alerts. Built with React and Tailwind CSS for a responsive and intuitive user experience.",
+  "requestFramePermissions": []
+}

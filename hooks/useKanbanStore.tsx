@@ -1,0 +1,203 @@
+
+import React, { createContext, useReducer, useContext, useEffect, ReactNode } from 'react';
+import { KanbanData, Task, User, ColumnId, Priority } from '../types';
+import { INITIAL_DATA } from '../constants';
+
+// --- STATE & ACTIONS ---
+interface AppState {
+  data: KanbanData;
+  loggedInUser: User | null;
+  filters: {
+    assigneeId: string | null;
+    priority: Priority | null;
+  };
+}
+
+type Action =
+  | { type: 'LOGIN'; payload: User }
+  | { type: 'LOGOUT' }
+  | { type: 'ADD_USER'; payload: { name: string; password: string; isAdmin?: boolean } }
+  | { type: 'MOVE_TASK'; payload: { taskId: string; sourceColumnId: ColumnId; destColumnId: ColumnId; destIndex: number } }
+  | { type: 'ADD_TASK'; payload: Omit<Task, 'id'> }
+  | { type: 'UPDATE_TASK'; payload: Task }
+  | { type: 'DELETE_TASK'; payload: { taskId: string } }
+  | { type: 'SET_FILTER'; payload: { filterType: 'assigneeId' | 'priority'; value: string | null } }
+  | { type: 'CLEAR_FILTERS' }
+  | { type: 'CHECK_DUE_DATES' }; // Not really an action, just a trigger
+
+// --- REDUCER ---
+const kanbanReducer = (state: AppState, action: Action): AppState => {
+  switch (action.type) {
+    case 'LOGIN':
+      return { ...state, loggedInUser: action.payload };
+    case 'LOGOUT':
+      return { ...state, loggedInUser: null };
+    case 'ADD_USER': {
+        const newUser: User = {
+            id: `user-${Date.now()}`,
+            name: action.payload.name,
+            password: action.payload.password,
+            avatar: action.payload.name.split(' ').map(n => n[0]).join('').toUpperCase(),
+            isAdmin: action.payload.isAdmin || false,
+        };
+        const newData = { ...state.data, users: [...state.data.users, newUser] };
+        return { ...state, data: newData };
+    }
+    case 'MOVE_TASK': {
+      const { taskId, sourceColumnId, destColumnId, destIndex } = action.payload;
+      const sourceColumn = state.data.columns[sourceColumnId];
+      const destColumn = state.data.columns[destColumnId];
+
+      const newSourceTaskIds = Array.from(sourceColumn.taskIds);
+      newSourceTaskIds.splice(newSourceTaskIds.indexOf(taskId), 1);
+
+      const newDestTaskIds = Array.from(destColumn.taskIds);
+      newDestTaskIds.splice(destIndex, 0, taskId);
+
+      const newData: KanbanData = {
+        ...state.data,
+        columns: {
+          ...state.data.columns,
+          [sourceColumnId]: { ...sourceColumn, taskIds: newSourceTaskIds },
+          [destColumnId]: { ...destColumn, taskIds: newDestTaskIds },
+        },
+        tasks: {
+            ...state.data.tasks,
+            [taskId]: { ...state.data.tasks[taskId], status: destColumnId }
+        }
+      };
+      return { ...state, data: newData };
+    }
+    case 'ADD_TASK': {
+        const newTaskId = `task-${Date.now()}`;
+        const newTask: Task = { id: newTaskId, ...action.payload };
+        const column = state.data.columns[newTask.status];
+        const newTaskIds = [...column.taskIds, newTaskId];
+
+        const newData: KanbanData = {
+            ...state.data,
+            tasks: { ...state.data.tasks, [newTaskId]: newTask },
+            columns: {
+                ...state.data.columns,
+                [newTask.status]: { ...column, taskIds: newTaskIds }
+            }
+        };
+        return { ...state, data: newData };
+    }
+    case 'UPDATE_TASK': {
+        const updatedTask = action.payload;
+        const oldTask = state.data.tasks[updatedTask.id];
+
+        // if status changed, move task between columns
+        if(oldTask.status !== updatedTask.status) {
+            const sourceColumn = state.data.columns[oldTask.status];
+            const destColumn = state.data.columns[updatedTask.status];
+            const newSourceTaskIds = sourceColumn.taskIds.filter(id => id !== updatedTask.id);
+            const newDestTaskIds = [...destColumn.taskIds, updatedTask.id];
+
+            const newData: KanbanData = {
+                ...state.data,
+                tasks: { ...state.data.tasks, [updatedTask.id]: updatedTask },
+                columns: {
+                    ...state.data.columns,
+                    [oldTask.status]: { ...sourceColumn, taskIds: newSourceTaskIds },
+                    [updatedTask.status]: { ...destColumn, taskIds: newDestTaskIds },
+                }
+            };
+            return { ...state, data: newData };
+        }
+
+        const newData: KanbanData = {
+            ...state.data,
+            tasks: { ...state.data.tasks, [updatedTask.id]: updatedTask },
+        };
+        return { ...state, data: newData };
+    }
+    case 'DELETE_TASK': {
+        const { taskId } = action.payload;
+        const taskToDelete = state.data.tasks[taskId];
+        if(!taskToDelete) return state;
+
+        const newTasks = { ...state.data.tasks };
+        delete newTasks[taskId];
+
+        const column = state.data.columns[taskToDelete.status];
+        const newTaskIds = column.taskIds.filter(id => id !== taskId);
+
+        const newData: KanbanData = {
+            ...state.data,
+            tasks: newTasks,
+            columns: {
+                ...state.data.columns,
+                [taskToDelete.status]: { ...column, taskIds: newTaskIds }
+            }
+        };
+        return { ...state, data: newData };
+    }
+    case 'SET_FILTER':
+      return {
+        ...state,
+        filters: { ...state.filters, [action.payload.filterType]: action.payload.value },
+      };
+    case 'CLEAR_FILTERS':
+      return { ...state, filters: { assigneeId: null, priority: null } };
+    case 'CHECK_DUE_DATES':
+        // This is a dummy action to trigger re-renders if needed, but the main logic is in the date helpers.
+        // It forces components that depend on date statuses to re-evaluate.
+        return { ...state };
+    default:
+      return state;
+  }
+};
+
+// --- CONTEXT & PROVIDER ---
+const StoreContext = createContext<{ state: AppState; dispatch: React.Dispatch<Action> } | undefined>(undefined);
+
+const getInitialState = (): AppState => {
+  try {
+    const persistedState = localStorage.getItem('kanbanState');
+    if (persistedState) {
+      const parsed = JSON.parse(persistedState);
+      // Ensure data structure is valid after loading from storage
+      return {
+        data: parsed.data || INITIAL_DATA,
+        loggedInUser: parsed.loggedInUser || null,
+        filters: parsed.filters || { assigneeId: null, priority: null }
+      };
+    }
+  } catch (error) {
+    console.error("Could not load state from localStorage", error);
+  }
+  return {
+    data: INITIAL_DATA,
+    loggedInUser: null,
+    filters: { assigneeId: null, priority: null },
+  };
+};
+
+export const StoreProvider: React.FC<{children: ReactNode}> = ({ children }) => {
+  const [state, dispatch] = useReducer(kanbanReducer, getInitialState());
+
+  useEffect(() => {
+    try {
+      // This simulates shared storage by saving to localStorage. In a real multi-user app, this would be a WebSocket or API call.
+      localStorage.setItem('kanbanState', JSON.stringify(state));
+    } catch (error) {
+      console.error("Could not save state to localStorage", error);
+    }
+  }, [state]);
+
+  return (
+    <StoreContext.Provider value={{ state, dispatch }}>
+      {children}
+    </StoreContext.Provider>
+  );
+};
+
+export const useKanbanStore = () => {
+  const context = useContext(StoreContext);
+  if (context === undefined) {
+    throw new Error('useKanbanStore must be used within a StoreProvider');
+  }
+  return context;
+};
