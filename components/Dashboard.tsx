@@ -22,7 +22,9 @@ const Dashboard: React.FC = () => {
 
   const userSummaries = useMemo<UserTaskSummary[]>(() => {
     return users.map(user => {
-      // FIX: Add explicit type 'Task' to the task parameter to resolve the 'unknown' type error.
+      // FIX: Add explicit type 'Task' to the `task` parameter in the filter function.
+      // This ensures `userTasks` is an array of `Task`s, preventing downstream
+      // errors when accessing task properties.
       const userTasks = Object.values(tasks).filter((task: Task) => task.assigneeIds.includes(user.id));
       
       return {

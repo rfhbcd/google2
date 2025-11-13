@@ -1,4 +1,3 @@
-
 import React, { createContext, useReducer, useContext, useEffect, ReactNode } from 'react';
 import { KanbanData, Task, User, ColumnId, Priority } from '../types';
 import { INITIAL_DATA } from '../constants';
@@ -17,6 +16,7 @@ type Action =
   | { type: 'LOGIN'; payload: User }
   | { type: 'LOGOUT' }
   | { type: 'ADD_USER'; payload: { name: string; password: string; isAdmin?: boolean } }
+  | { type: 'DELETE_USER'; payload: { userId: string } }
   | { type: 'MOVE_TASK'; payload: { taskId: string; sourceColumnId: ColumnId; destColumnId: ColumnId; destIndex: number } }
   | { type: 'ADD_TASK'; payload: Omit<Task, 'id'> }
   | { type: 'UPDATE_TASK'; payload: Task }
@@ -42,6 +42,42 @@ const kanbanReducer = (state: AppState, action: Action): AppState => {
         };
         const newData = { ...state.data, users: [...state.data.users, newUser] };
         return { ...state, data: newData };
+    }
+    case 'DELETE_USER': {
+        const { userId } = action.payload;
+
+        // Filter out the deleted user
+        const newUsers = state.data.users.filter(user => user.id !== userId);
+
+        // Unassign the deleted user from all tasks using an immutable approach
+        const newTasks = Object.fromEntries(
+            Object.entries(state.data.tasks).map(([taskId, task]) => {
+                if (task.assigneeIds.includes(userId)) {
+                    // Return a new task object with the user unassigned
+                    return [taskId, {
+                        ...task,
+                        assigneeIds: task.assigneeIds.filter(id => id !== userId)
+                    }];
+                }
+                // Return the original task if no change is needed
+                return [taskId, task];
+            })
+        );
+        
+        // Clear the assignee filter if the deleted user was selected
+        const newFilters = state.filters.assigneeId === userId
+            ? { ...state.filters, assigneeId: null }
+            : state.filters;
+
+        return {
+            ...state,
+            data: {
+                ...state.data,
+                users: newUsers,
+                tasks: newTasks,
+            },
+            filters: newFilters,
+        };
     }
     case 'MOVE_TASK': {
       const { taskId, sourceColumnId, destColumnId, destIndex } = action.payload;

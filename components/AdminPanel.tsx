@@ -1,13 +1,14 @@
-
 import React, { useState } from 'react';
 import { useKanbanStore } from '../hooks/useKanbanStore';
 import { User } from '../types';
+import { TrashIcon } from './icons/TrashIcon';
 
 const AdminPanel: React.FC = () => {
   const { state, dispatch } = useKanbanStore();
   const [newUserName, setNewUserName] = useState('');
   const [newUserPassword, setNewUserPassword] = useState('');
   const [isNewUserAdmin, setIsNewUserAdmin] = useState(false);
+  const { loggedInUser } = state;
 
   const handleAddUser = (e: React.FormEvent) => {
     e.preventDefault();
@@ -16,6 +17,12 @@ const AdminPanel: React.FC = () => {
       setNewUserName('');
       setNewUserPassword('');
       setIsNewUserAdmin(false);
+    }
+  };
+
+  const handleDeleteUser = (user: User) => {
+    if (window.confirm(`Tem certeza que deseja excluir o usuário "${user.name}"? Esta ação também removerá o usuário de todas as tarefas atribuídas.`)) {
+      dispatch({ type: 'DELETE_USER', payload: { userId: user.id } });
     }
   };
 
@@ -82,11 +89,21 @@ const AdminPanel: React.FC = () => {
                   </div>
                   <span className="font-medium">{user.name}</span>
                 </div>
-                {user.isAdmin && (
-                  <span className="px-2 py-1 text-xs font-semibold text-green-800 bg-green-100 rounded-full">
-                    Admin
-                  </span>
-                )}
+                <div className="flex items-center gap-2">
+                  {user.isAdmin && (
+                    <span className="px-2 py-1 text-xs font-semibold text-green-800 bg-green-100 rounded-full">
+                      Admin
+                    </span>
+                  )}
+                   <button
+                      onClick={() => handleDeleteUser(user)}
+                      disabled={user.id === loggedInUser?.id}
+                      className="p-1 text-slate-400 rounded-md hover:bg-red-100 hover:text-red-600 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-slate-400"
+                      title={user.id === loggedInUser?.id ? "Você não pode excluir a si mesmo" : "Excluir usuário"}
+                    >
+                      <TrashIcon className="w-5 h-5" />
+                    </button>
+                </div>
               </li>
             ))}
           </ul>

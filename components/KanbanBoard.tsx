@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useKanbanStore } from '../hooks/useKanbanStore';
 import Column from './Column';
-// FIX: Import the Task type to be used for type annotation.
 import { ColumnId, Task } from '../types';
 
 const KanbanBoard: React.FC = () => {
@@ -37,7 +36,9 @@ const KanbanBoard: React.FC = () => {
   };
   
   const filteredTasks = useMemo(() => {
-    // FIX: Add explicit type 'Task' to the `task` parameter to resolve the 'unknown' type error on `task.id`.
+    // FIX: Add explicit type 'Task' to the `task` parameter in the filter function.
+    // This resolves an issue where `task` was implicitly typed as `unknown`,
+    // causing a downstream error when accessing `task.id`.
     return Object.values(data.tasks).filter((task: Task) => {
       const assigneeMatch = !filters.assigneeId || task.assigneeIds.includes(filters.assigneeId);
       const priorityMatch = !filters.priority || task.priority === filters.priority;
