@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useKanbanStore } from './hooks/useKanbanStore';
 import Login from './components/Login';
@@ -10,22 +9,15 @@ import AdminPanel from './components/AdminPanel';
 type View = 'board' | 'dashboard' | 'admin';
 
 const App: React.FC = () => {
-  const { state, dispatch } = useKanbanStore();
+  const { state } = useKanbanStore();
   const [currentView, setCurrentView] = useState<View>('board');
+  const { loggedInUser } = state;
 
-  useEffect(() => {
-    // Auto-check for due dates every minute
-    const intervalId = setInterval(() => {
-      dispatch({ type: 'CHECK_DUE_DATES' });
-    }, 60000);
 
-    return () => clearInterval(intervalId);
-  }, [dispatch]);
-
-  if (!state.loggedInUser) {
+  if (!loggedInUser) {
     return <Login />;
   }
-
+  
   const renderView = () => {
     switch (currentView) {
       case 'dashboard':

@@ -1,86 +1,26 @@
-import { KanbanData, Priority, User } from './types';
+import { KanbanData, Priority } from './types';
 
-export const USERS: User[] = [
-  { id: 'user-1', name: 'Ana Silva', password: 'ana', avatar: 'AS', isAdmin: true },
-  { id: 'user-2', name: 'Bruno Costa', password: 'bruno', avatar: 'BC' },
-  { id: 'user-3', name: 'Carla Dias', password: 'carla', avatar: 'CD' },
-  { id: 'user-4', name: 'Daniel Alves', password: 'daniel', avatar: 'DA' },
-];
-
-export const INITIAL_DATA: KanbanData = {
+export const initialData: KanbanData = {
+  users: [
+    { id: 'user-1', name: 'Ana', avatar: 'A', email: 'ana@kanban.app', password: 'ana', isAdmin: true },
+    { id: 'user-2', name: 'Bruno', avatar: 'B', email: 'bruno@kanban.app', password: 'bruno', isAdmin: false },
+    { id: 'user-3', name: 'Carla', avatar: 'C', email: 'carla@kanban.app', password: 'carla', isAdmin: false },
+    { id: 'user-4', name: 'Daniel', avatar: 'D', email: 'daniel@kanban.app', password: 'daniel', isAdmin: false },
+  ],
   tasks: {
-    'task-1': {
-      id: 'task-1',
-      title: 'Configurar ambiente de desenvolvimento',
-      description: 'Instalar todas as dependências e configurar o linter.',
-      assigneeIds: ['user-1'],
-      dueDate: new Date(new Date().setDate(new Date().getDate() + 2)).toISOString(),
-      priority: Priority.Alta,
-      status: 'todo',
-    },
-    'task-2': {
-      id: 'task-2',
-      title: 'Desenvolver componente de Login',
-      description: 'Criar a interface e a lógica de autenticação.',
-      assigneeIds: ['user-2'],
-      dueDate: new Date(new Date().setDate(new Date().getDate() - 1)).toISOString(),
-      priority: Priority.Alta,
-      status: 'inprogress',
-    },
-    'task-3': {
-      id: 'task-3',
-      title: 'Criar cards de tarefas',
-      description: 'Implementar o componente de card com drag-and-drop.',
-      assigneeIds: ['user-3', 'user-4'],
-      dueDate: new Date(new Date().setDate(new Date().getDate() + 5)).toISOString(),
-      priority: Priority.Media,
-      status: 'inprogress',
-    },
-    'task-4': {
-      id: 'task-4',
-      title: 'Revisar documentação da API',
-      description: 'Verificar os endpoints necessários para a aplicação.',
-      assigneeIds: [],
-      dueDate: new Date(new Date().setDate(new Date().getDate() + 10)).toISOString(),
-      priority: Priority.Baixa,
-      status: 'todo',
-    },
-    'task-5': {
-      id: 'task-5',
-      title: 'Deploy da versão alpha',
-      description: 'Publicar a primeira versão em ambiente de staging.',
-      assigneeIds: ['user-1'],
-      dueDate: new Date(new Date().setDate(new Date().getDate() - 5)).toISOString(),
-      priority: Priority.Alta,
-      status: 'done',
-    },
-    'task-6': {
-      id: 'task-6',
-      title: 'Testes de usabilidade',
-      description: 'Conduzir testes com usuários para coletar feedback.',
-      assigneeIds: ['user-4'],
-      dueDate: new Date(new Date().setDate(new Date().getDate() + 1)).toISOString(),
-      priority: Priority.Media,
-      status: 'todo',
-    }
+    'task-1': { id: 'task-1', title: 'Configurar o ambiente de desenvolvimento', description: 'Instalar Node, React e Tailwind.', assigneeIds: ['user-1'], dueDate: '2024-08-10T23:59:59.000Z', priority: Priority.Alta, status: 'todo' },
+    'task-2': { id: 'task-2', title: 'Desenvolver a estrutura de componentes', description: 'Criar componentes reutilizáveis para o quadro, colunas e cards.', assigneeIds: ['user-2'], dueDate: '2024-08-12T23:59:59.000Z', priority: Priority.Media, status: 'inprogress' },
+    'task-3': { id: 'task-3', title: 'Implementar a funcionalidade de arrastar e soltar', description: 'Usar uma biblioteca como react-beautiful-dnd.', assigneeIds: ['user-3'], dueDate: '2024-08-15T23:59:59.000Z', priority: Priority.Alta, status: 'inprogress' },
+    'task-4': { id: 'task-4', title: 'Criar o modal de edição de tarefas', description: 'Permitir que os usuários editem os detalhes da tarefa.', assigneeIds: ['user-1'], dueDate: '2024-08-11T23:59:59.000Z', priority: Priority.Media, status: 'review' },
+    'task-5': { id: 'task-5', title: 'Desenvolver o painel de administração', description: 'Adicionar funcionalidade para gerenciar usuários e colunas.', assigneeIds: ['user-1'], dueDate: '2024-08-20T23:59:59.000Z', priority: Priority.Alta, status: 'todo' },
+    'task-6': { id: 'task-6', title: 'Testar a responsividade', description: 'Garantir que o layout funcione em dispositivos móveis.', assigneeIds: ['user-4'], dueDate: '2024-07-30T23:59:59.000Z', priority: Priority.Baixa, status: 'done', completionDate: '2024-07-29T10:00:00.000Z' },
+    'task-7': { id: 'task-7', title: 'Corrigir bug na autenticação', description: 'O logout não está redirecionando corretamente.', assigneeIds: ['user-2'], dueDate: '2024-08-01T23:59:59.000Z', priority: Priority.Alta, status: 'done', completionDate: '2024-08-02T14:30:00.000Z' },
   },
   columns: {
-    'todo': {
-      id: 'todo',
-      title: 'A Fazer',
-      taskIds: ['task-1', 'task-4', 'task-6'],
-    },
-    'inprogress': {
-      id: 'inprogress',
-      title: 'Em Progresso',
-      taskIds: ['task-2', 'task-3'],
-    },
-    'done': {
-      id: 'done',
-      title: 'Concluído',
-      taskIds: ['task-5'],
-    },
+    'todo': { id: 'todo', title: 'A Fazer', taskIds: ['task-1', 'task-5'] },
+    'inprogress': { id: 'inprogress', title: 'Em Progresso', taskIds: ['task-2', 'task-3'] },
+    'review': { id: 'review', title: 'Revisão', taskIds: ['task-4'] },
+    'done': { id: 'done', title: 'Concluído', taskIds: ['task-6', 'task-7'] },
   },
-  columnOrder: ['todo', 'inprogress', 'done'],
-  users: USERS,
+  columnOrder: ['todo', 'inprogress', 'review', 'done'],
 };

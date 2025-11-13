@@ -26,8 +26,9 @@ const OverdueReport: React.FC = () => {
             (task: Task) => task.completionDate
         );
 
+        // Fix: Explicitly type the 'task' parameter to resolve TypeScript error.
         const overdueTasks = completedTasks.filter(
-            task => new Date(task.completionDate!) > new Date(task.dueDate)
+            (task: Task) => new Date(task.completionDate!) > new Date(task.dueDate)
         );
 
         const now = new Date();
@@ -36,12 +37,14 @@ const OverdueReport: React.FC = () => {
         }
 
         return users.map(user => {
-            const userOverdueTasks = overdueTasks.filter(task => task.assigneeIds.includes(user.id));
+            // Fix: Explicitly type the 'task' parameter to resolve TypeScript error.
+            const userOverdueTasks = overdueTasks.filter((task: Task) => task.assigneeIds.includes(user.id));
             const periods = {
                 '7': 0, '15': 0, '30': 0, '90': 0
             };
 
-            userOverdueTasks.forEach(task => {
+            // Fix: Explicitly type the 'task' parameter to resolve TypeScript error.
+            userOverdueTasks.forEach((task: Task) => {
                 const daysAgo = daysBetween(now, new Date(task.completionDate!));
                 if (daysAgo <= 7) periods['7']++;
                 if (daysAgo <= 15) periods['15']++;

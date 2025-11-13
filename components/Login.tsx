@@ -1,29 +1,33 @@
-
 import React, { useState } from 'react';
 import { useKanbanStore } from '../hooks/useKanbanStore';
+import { User } from '../types';
 
 const Login: React.FC = () => {
-  const { state, dispatch } = useKanbanStore();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const { state, dispatch } = useKanbanStore();
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Username can be the full name or the first name.
-    const userToLogin = state.data.users.find(user => 
-        (user.name.toLowerCase() === username.toLowerCase() || 
-         user.name.split(' ')[0].toLowerCase() === username.toLowerCase()) && 
-        user.password === password
-    );
+    setLoading(true);
+    setError('');
 
-    if (userToLogin) {
-      dispatch({ type: 'LOGIN', payload: userToLogin });
-      setError('');
-    } else {
-      setError('Usuário ou senha inválidos.');
-    }
+    setTimeout(() => {
+      const user = state.data.users.find(
+        (u: User) => 
+          (u.name.toLowerCase() === username.toLowerCase() || u.email?.toLowerCase() === username.toLowerCase()) &&
+          u.password === password
+      );
+      
+      if (user) {
+        dispatch({ type: 'SET_USER', payload: user });
+      } else {
+        setError('Usuário ou senha inválidos.');
+      }
+      setLoading(false);
+    }, 500); // Simula uma pequena latência de rede
   };
 
   return (
@@ -39,7 +43,7 @@ const Login: React.FC = () => {
               htmlFor="username"
               className="block text-sm font-medium text-slate-700"
             >
-              Usuário
+              Usuário (ou E-mail)
             </label>
             <input
               id="username"
@@ -47,7 +51,7 @@ const Login: React.FC = () => {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               className="w-full px-3 py-2 mt-1 border rounded-md shadow-sm border-slate-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-              placeholder="Ex: Ana Silva ou ana"
+              placeholder="Ex: ana ou ana@kanban.app"
               required
             />
           </div>
@@ -71,11 +75,19 @@ const Login: React.FC = () => {
           {error && <p className="text-sm text-center text-red-500">{error}</p>}
           <button
             type="submit"
-            className="w-full py-2 text-white transition duration-150 bg-indigo-600 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            disabled={loading}
+            className="w-full py-2 text-white transition duration-150 bg-indigo-600 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-indigo-400 disabled:cursor-not-allowed"
           >
-            Entrar
+            {loading ? 'Entrando...' : 'Entrar'}
           </button>
         </form>
+         <div className="p-4 mt-4 text-sm text-center border rounded-lg bg-slate-50 border-slate-200">
+            <h4 className="font-semibold">Usuários de Demonstração</h4>
+            <ul className="mt-2 text-slate-600">
+                <li><b className="font-medium">Admin:</b> ana (senha: ana)</li>
+                <li><b className="font-medium">Membro:</b> bruno (senha: bruno)</li>
+            </ul>
+        </div>
       </div>
     </div>
   );

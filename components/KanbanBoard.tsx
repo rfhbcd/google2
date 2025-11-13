@@ -30,9 +30,11 @@ const KanbanBoard: React.FC = () => {
     if (!sourceTask) return;
 
     const sourceColumnId = sourceTask.status;
+    const sourceIndex = data.columns[sourceColumnId].taskIds.indexOf(taskId);
 
-    if (sourceColumnId !== destColumnId || data.columns[sourceColumnId].taskIds.indexOf(taskId) !== destIndex) {
-        dispatch({ type: 'MOVE_TASK', payload: { taskId, sourceColumnId, destColumnId, destIndex } });
+
+    if (sourceColumnId !== destColumnId || sourceIndex !== destIndex) {
+        dispatch({ type: 'MOVE_TASK', payload: { taskId, sourceColumnId, destColumnId, sourceIndex, destIndex } });
     }
   };
 
@@ -48,6 +50,7 @@ const KanbanBoard: React.FC = () => {
 
   const handleColumnDrop = (e: React.DragEvent<HTMLDivElement>, targetColumnId: ColumnId) => {
     e.preventDefault();
+    e.stopPropagation(); // Evita que o drop da coluna acione o drop da tarefa
     const sourceColumnId = e.dataTransfer.getData('application/kanban.column.id');
     
     if (!sourceColumnId || sourceColumnId === targetColumnId) return;

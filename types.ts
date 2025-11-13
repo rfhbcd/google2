@@ -7,11 +7,12 @@ export enum Priority {
 export type ColumnId = string;
 
 export interface User {
-  id: string;
+  id: string; 
   name: string;
-  password: string;
   avatar: string; // URL to avatar image or initials
   isAdmin?: boolean;
+  email?: string;
+  password?: string;
 }
 
 export interface Task {
